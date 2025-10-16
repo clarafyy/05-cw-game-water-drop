@@ -13,10 +13,29 @@
         <div class="score-panel">
             <div class="score">Score: <span id="score">0</span></div>
             <div class="timer">Time: <span id="time">30</span>s</div>
-            <button id="start-btn">Start Game</button>
         </div>
         
         <div id="game-container">
+            <div id="slider" aria-hidden="false">
+                <img id="bucket-img" src="img/transparent-silver-with-wood-bucket-0.png" alt="bucket" />
+                <img id="watercan-img" src="img/water-can-transparent.png" alt="water can" />
+            </div>
+        </div>
+
+        <!-- Start screen overlay that appears before the game begins -->
+        <div id="start-overlay">
+            <div class="start-content">
+                <h2>Ready to Catch Some Drops?</h2>
+                <button id="start-btn">Start Game</button>
+            </div>
+        </div>
+        
+        <!-- End game overlay (hidden until game ends) -->
+        <div id="end-overlay" style="display:none;">
+            <div class="start-content">
+                <h2 id="end-message">Great job!</h2>
+                <div style="margin-top:16px;"><button id="play-again">Play Again</button></div>
+            </div>
         </div>
     </div>
     
