@@ -26,10 +26,12 @@ Fonts:
 
 body {
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column; /* stack header above content */
+    justify-content: flex-start; /* keep content at the top */
+    align-items: center; /* center children horizontally */
     min-height: 100vh;
-    background-color: #f0f0f0;
+    padding-top: 20px; /* small gap from top */
+    background-color: #49626f;
     font-family: Arial, sans-serif;
 }
 
@@ -44,7 +46,7 @@ body {
     display: flex;
     justify-content: space-between;  /* Space between score and button */
     align-items: center;
-    width: 800px;
+    width: 1000px;
     padding: 10px;
     background-color: #fff;
     border-radius: 8px;
@@ -57,14 +59,67 @@ body {
     font-weight: bold;
 }
 
+/* Play area: game + progress bar side-by-side */
+.play-area {
+    display: flex;
+    align-items: stretch; /* make children (game + bar) the same height */
+    gap: 8px; /* sit right next to the game area */
+    justify-content: center; /* center the combined area */
+}
+
+/* Progress bar placed to the right of the game container (no overlap) */
+#progress-bar {
+    position: relative;
+    width: 36px;
+    /* no fixed height: stretch to match the game container via flexbox */
+    background: rgba(0,0,0,0.06);
+    border-radius: 8px;
+    display: flex;
+    align-items: flex-end; /* fill grows from bottom */
+    padding: 4px;
+    box-sizing: border-box;
+    align-self: stretch; /* ensure the bar stretches in the flex row */
+}
+
+#progress-fill {
+    width: 100%;
+    height: 0%;
+    background: #2E9DF7; /* charity: water primary blue */
+    border-radius: 6px 6px 0 0;
+    transition: height 180ms ease;
+}
+
 #game-container {
-    width: 800px;
-    height: 600px;
+    width: 1000px;
+    height: 480px;
     background-color: #e6f7ff;
     border: 2px solid #333;
     border-radius: 8px;
     position: relative;
     overflow: hidden;
+}
+
+/* Site header matching the game area background */
+.site-header {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    background-color: #e6f7ff; /* same as #game-container */
+    padding: 12px 0;
+    margin-bottom: 30px;
+}
+
+.site-header .header-inner {
+    width: 1000px; /* match game container width */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#cw-logo {
+    display: block;
+    max-width: 100%;
+    height: auto;
 }
 
 /* Slider (bucket) styles */
@@ -80,15 +135,7 @@ body {
 
 #slider img { display: block; width: 100%; height: auto; pointer-events: none; }
 
-/* keep bucket width same; make logo considerably smaller */
-#watercan-img {
-    position: absolute;
-    left: 50%;
-    top: 34%;
-    transform: translateX(-50%);
-    width: 12%;
-    opacity: 0.95;
-}
+
 
 @keyframes catchAnim {
   0% { transform: translateY(0) scale(1); opacity: 1; }
@@ -131,6 +178,21 @@ body {
     z-index: 9999;
 }
 
+/* End overlay (game end / game over) - same behavior as start overlay */
+#end-overlay {
+    position: fixed; /* cover the entire viewport */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none; /* shown via JS when game ends */
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.6); /* darker semi-transparent layer */
+    z-index: 9999;
+    font-family: 'Times New Roman', Times, serif;
+}
+
 .start-content {
     background: linear-gradient(180deg, #ffffff, #f7fbff);
     border-radius: 12px;
@@ -157,17 +219,32 @@ body {
     font-weight: bold;
 }
 
+/* Missed-drop icons next to the score */
+.missed {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 12px;
+}
+
+.miss-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+}
+
 .water-drop {
     position: absolute;
-    width: 60px;  /* increased from 40px */
-    height: 60px; /* increased from 40px */
-    background-color: #0099ff;
-    border-radius: 50%;
+    width: 60px;  /* base size (can be overridden inline by script) */
+    height: 60px; /* base size (can be overridden inline by script) */
+    /* Use the provided water drop image instead of a colored circle */
+    background-image: url('img/water-drop-icon-transparent-free-png.webp');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
     animation: dropFall linear forwards;
     transform-origin: center;
     cursor: pointer;
-    padding: 15px;  /* Add padding for larger click area */
-    margin: -15px;  /* Offset padding to maintain visual size */
     transition: transform 0.1s ease;  /* Smooth hover effect */
 }
 
@@ -180,18 +257,22 @@ body {
 }
 
 .game-title {
-    color: #131313;
-    font-size: 48px;
-    margin-top: 0;
-    margin-bottom: 5px;  /* reduced from 20px */
+    color: #f7fbff;
+    font-size: 55px;
     text-align: center;
+    font-family: 'Times New Roman', Times, serif;
+    font-weight: lighter;
+    letter-spacing: 6px;
 }
 
 .game-tagline {
-    color: #666;
+    color: #f7fbff;
     font-size: 18px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     text-align: center;
+        font-family: 'Times New Roman', Times, serif;
+    font-weight: lighter;
+    letter-spacing: 2px;
 }
 
 @keyframes dropFall {
@@ -204,11 +285,19 @@ body {
 }
 
 @media (max-width: 850px) {
-    .game-wrapper, .score-panel, #game-container {
+    .game-wrapper, .score-panel, #game-container, .site-header .header-inner {
         width: 95vw;
     }
     
+    .play-area { flex-direction: column; align-items: center; }
+
     #game-container {
         height: 70vh;
+    }
+
+    /* Make progress bar scale on small screens and stay vertical */
+    #progress-bar {
+        height: 70vh;
+        width: 36px;
     }
 }

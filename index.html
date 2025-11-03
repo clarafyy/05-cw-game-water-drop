@@ -7,18 +7,28 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <header class="site-header">
+        <div class="header-inner">
+            <img id="cw-logo" src="img/cw_logo-horizontal.png" alt="charity: water logo" />
+        </div>
+    </header>
     <div class="game-wrapper">
         <h1 class="game-title">Water Drop</h1>
         <p class="game-tagline">Catch the good drops, avoid the bad ones!</p>
         <div class="score-panel">
             <div class="score">Score: <span id="score">0</span></div>
-            <div class="timer">Time: <span id="time">30</span>s</div>
+            <div id="missed-container" class="missed" aria-hidden="true"></div>
         </div>
         
-        <div id="game-container">
-            <div id="slider" aria-hidden="false">
-                <img id="bucket-img" src="img/transparent-silver-with-wood-bucket-0.png" alt="bucket" />
-                <img id="watercan-img" src="img/water-can-transparent.png" alt="water can" />
+        <div class="play-area">
+            <div id="game-container">
+                <div id="slider" aria-hidden="false">
+                    <img id="bucket-img" src="img/transparent-silver-with-wood-bucket-0.png" alt="bucket" />
+                </div>
+            </div>
+            <!-- Progress bar outside the game area on the right -->
+            <div id="progress-bar" aria-hidden="true">
+                <div id="progress-fill"></div>
             </div>
         </div>
 
@@ -26,12 +36,20 @@
         <div id="start-overlay">
             <div class="start-content">
                 <h2>Ready to Catch Some Drops?</h2>
-                <button id="start-btn">Start Game</button>
+                    <fieldset class="difficulty-options" style="border:0; padding:0; margin:12px 0;">
+                        <legend style="font-weight:600; margin-bottom:8px;">Choose difficulty</legend>
+                        <label><input type="radio" name="difficulty" value="easy" /> Easy</label>
+                        &nbsp;&nbsp;
+                        <label><input type="radio" name="difficulty" value="moderate" checked /> Moderate</label>
+                        &nbsp;&nbsp;
+                        <label><input type="radio" name="difficulty" value="hard" /> Hard</label>
+                    </fieldset>
+                    <button id="start-btn">Start Game</button>
             </div>
         </div>
         
         <!-- End game overlay (hidden until game ends) -->
-        <div id="end-overlay" style="display:none;">
+        <div id="end-overlay">
             <div class="start-content">
                 <h2 id="end-message">Great job!</h2>
                 <div style="margin-top:16px;"><button id="play-again">Play Again</button></div>

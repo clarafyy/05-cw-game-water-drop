@@ -2,8 +2,7 @@
 let gameRunning = false; // Keeps track of whether game is active or not
 let dropMaker; // Will store our timer that creates drops regularly
 let score = 0;
-let timeLeft = 30;
-let timerInterval;
+let strikes = 0; // number of missed droplets this round
 
 const winMessages = [
   "You're a water hero!",
@@ -20,6 +19,15 @@ const loseMessages = [
 // Wait for button click to start the game
 document.getElementById("start-btn").addEventListener("click", startGame);
 
+// Difficulty settings (duration in seconds, spawn interval in ms)
+let dropFallDuration = 4; // moderate default
+let dropSpawnInterval = 1000; // moderate default
+const difficultySettings = {
+  easy: { duration: 5, spawn: 1100 },
+  moderate: { duration: 3.2, spawn: 900 },
+  hard: { duration: 1.8, spawn: 600 }
+};
+
 function startGame() {
   // Prevent multiple games from running at once
   if (gameRunning) return;
@@ -28,23 +36,33 @@ function startGame() {
 
   // Remove the start overlay so the dark layer is gone and game is visible
   const overlay = document.getElementById("start-overlay");
-  if (overlay) overlay.remove();
+  // hide instead of remove so player can change difficulty on 'Play again'
+  if (overlay) overlay.style.display = 'none';
 
-  // Create new drops every second (1000 milliseconds)
-  dropMaker = setInterval(createDrop, 1000);
+  // Read selected difficulty from start overlay (default to moderate)
+  try {
+    const selected = document.querySelector('input[name="difficulty"]:checked');
+    const choice = selected ? selected.value : 'moderate';
+    const cfg = difficultySettings[choice] || difficultySettings.moderate;
+    dropFallDuration = cfg.duration;
+    dropSpawnInterval = cfg.spawn;
+  } catch (e) {
+    // fallback to moderate
+    dropFallDuration = difficultySettings.moderate.duration;
+    dropSpawnInterval = difficultySettings.moderate.spawn;
+  }
 
-  // Reset score and timer UI
+  // Reset score and progress UI
   score = 0;
-  timeLeft = 30;
+  strikes = 0;
   document.getElementById('score').textContent = score;
-  document.getElementById('time').textContent = timeLeft;
+  updateProgress();
+  // Clear missed icons from previous round
+  const missedContainer = document.getElementById('missed-container');
+  if (missedContainer) missedContainer.innerHTML = '';
 
-  // Start countdown timer
-  timerInterval = setInterval(() => {
-    timeLeft -= 1;
-    document.getElementById('time').textContent = timeLeft;
-    if (timeLeft <= 0) endGame();
-  }, 1000);
+  // Create new drops at the spawn rate selected by difficulty
+  dropMaker = setInterval(createDrop, dropSpawnInterval);
 }
 
 function createDrop() {
@@ -53,10 +71,9 @@ function createDrop() {
   drop.className = "water-drop";
 
   // Make drops different sizes for visual variety
-  const initialSize = 60;
-  const sizeMultiplier = Math.random() * 0.8 + 0.5;
-  const size = initialSize * sizeMultiplier;
-  drop.style.width = drop.style.height = `${size}px`;
+  // Use a fixed size so all drops are the same
+  const fixedSize = 60; // px
+  drop.style.width = drop.style.height = `${fixedSize}px`;
 
   // Position the drop randomly across the game width
   // Subtract 60 pixels to keep drops fully inside the container
@@ -64,8 +81,8 @@ function createDrop() {
   const xPosition = Math.random() * (gameWidth - 60);
   drop.style.left = xPosition + "px";
 
-  // Make drops fall for 4 seconds
-  drop.style.animationDuration = "4s";
+  // Make drops fall for the duration set by difficulty
+  drop.style.animationDuration = dropFallDuration + "s";
 
   // Add the new drop to the game screen
   document.getElementById("game-container").appendChild(drop);
@@ -75,6 +92,21 @@ function createDrop() {
   // Remove drops that reach the bottom (weren't caught by the slider)
   drop.addEventListener("animationend", () => {
     if (drop.caught) return;
+    // This drop was missed — increment strikes and show a red X next to the score
+    strikes += 1;
+    const missedContainer = document.getElementById('missed-container');
+    if (missedContainer && strikes <= 3) {
+      const img = document.createElement('img');
+      img.src = 'img/Red_X.svg.png';
+      img.alt = 'missed';
+      img.className = 'miss-icon';
+      missedContainer.appendChild(img);
+    }
+    // If more than 3 strikes, game over
+    if (strikes > 3) {
+      // Stop game immediately and show GAME OVER
+      endGame('GAME OVER');
+    }
     drop.remove(); // Clean up drops that weren't caught
   });
 }
@@ -118,10 +150,16 @@ setInterval(() => {
         drop.caught = true;
         score += 1;
         document.getElementById('score').textContent = score;
+            // update the progress bar
+            updateProgress();
         drop.classList.add('caught');
         playCatchSound();
         drop.addEventListener('animationend', () => drop.remove(), { once: true });
         setTimeout(() => { if (drop.parentNode) drop.remove(); }, 400);
+            // End the game when player reaches 50 drops
+            if (score >= 50) {
+              endGame();
+            }
       }
     }
   });
@@ -148,18 +186,22 @@ function playCatchSound() {
   }
 }
 
-function endGame() {
+function endGame(customMessage) {
   // Stop making new drops and stop timer
   clearInterval(dropMaker);
-  clearInterval(timerInterval);
   gameRunning = false;
 
   // Clear any remaining drops
   document.querySelectorAll('.water-drop').forEach(d => d.remove());
 
   // Choose a random end message
-  const messages = score >= 20 ? winMessages : loseMessages;
-  const message = messages[Math.floor(Math.random() * messages.length)];
+  let message;
+  if (customMessage) {
+    message = customMessage;
+  } else {
+    const messages = score >= 50 ? winMessages : loseMessages;
+    message = messages[Math.floor(Math.random() * messages.length)];
+  }
 
   // Show end overlay with message
   const endOverlay = document.getElementById('end-overlay');
@@ -173,7 +215,18 @@ function endGame() {
     playAgain.onclick = () => {
       // hide overlay and restart
       if (endOverlay) endOverlay.style.display = 'none';
-      startGame();
+      // show the start overlay so the player can choose difficulty and start again
+      const startOverlay = document.getElementById('start-overlay');
+      if (startOverlay) startOverlay.style.display = 'flex';
     };
   }
+}
+
+// Progress bar update: fills proportionally to score / 50
+function updateProgress() {
+  const fill = document.getElementById('progress-fill');
+  if (!fill) return;
+  const pct = Math.min(score, 50) / 50 * 100;
+  // set height as percentage so it grows from bottom (CSS aligns items to flex-end)
+  fill.style.height = pct + '%';
 }
