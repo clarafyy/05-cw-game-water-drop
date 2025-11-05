@@ -24,6 +24,10 @@ Fonts:
     box-sizing: border-box;
 }
 
+:root {
+    --progress-width: 48px; /* default progress bar width used to calculate game width */
+}
+
 body {
     display: flex;
     flex-direction: column; /* stack header above content */
@@ -46,7 +50,8 @@ body {
     display: flex;
     justify-content: space-between;  /* Space between score and button */
     align-items: center;
-    width: 1000px;
+    width: 95vw;
+    max-width: 1000px;
     padding: 10px;
     background-color: #fff;
     border-radius: 8px;
@@ -62,15 +67,21 @@ body {
 /* Play area: game + progress bar side-by-side */
 .play-area {
     display: flex;
+    flex-direction: row; /* keep game + progress bar side-by-side */
+    flex-wrap: nowrap;   /* prevent the progress bar from wrapping below the game */
     align-items: stretch; /* make children (game + bar) the same height */
     gap: 8px; /* sit right next to the game area */
     justify-content: center; /* center the combined area */
+    width: 95vw; /* take most of viewport width so child flex sizes are meaningful */
+    max-width: 100%;
 }
 
 /* Progress bar placed to the right of the game container (no overlap) */
 #progress-bar {
     position: relative;
-    width: 36px;
+    flex: 0 0 var(--progress-width); /* fixed column on the right; uses CSS var */
+    max-width: 20%;
+    min-width: 24px;
     /* no fixed height: stretch to match the game container via flexbox */
     background: rgba(0,0,0,0.06);
     border-radius: 8px;
@@ -79,6 +90,8 @@ body {
     padding: 4px;
     box-sizing: border-box;
     align-self: stretch; /* ensure the bar stretches in the flex row */
+    /* animate changes to the bar width when the CSS variable changes */
+    transition: flex-basis 260ms ease, width 260ms ease;
 }
 
 #progress-fill {
@@ -90,13 +103,19 @@ body {
 }
 
 #game-container {
-    width: 1000px;
+    /* flexible game area so progress bar can stay to the side on small screens */
+    flex: 1 1 auto;
+    min-width: 0; /* allows the flex item to shrink instead of overflowing */
+    /* Make the game container as wide as viewport minus the progress bar and gap */
+    max-width: calc(100vw - var(--progress-width) - 16px);
     height: 480px;
     background-color: #e6f7ff;
     border: 2px solid #333;
     border-radius: 8px;
     position: relative;
     overflow: hidden;
+    /* animate the container resizing smoothly when --progress-width changes */
+    transition: max-width 260ms ease;
 }
 
 /* Site header matching the game area background */
@@ -110,7 +129,8 @@ body {
 }
 
 .site-header .header-inner {
-    width: 1000px; /* match game container width */
+    width: 95vw;
+    max-width: 1000px; /* match game container max width */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -285,19 +305,38 @@ body {
 }
 
 @media (max-width: 850px) {
-    .game-wrapper, .score-panel, #game-container, .site-header .header-inner {
+    /* Keep everything sized relative to viewport but keep play-area a row */
+    .game-wrapper, .score-panel, .site-header .header-inner {
         width: 95vw;
     }
-    
-    .play-area { flex-direction: column; align-items: center; }
+
+    /* Ensure play-area does not wrap; allow game-container to shrink
+       so the progress bar remains on the side */
+    .play-area { flex-direction: row; flex-wrap: nowrap; }
 
     #game-container {
-        height: 70vh;
+        height: 60vh;
     }
 
-    /* Make progress bar scale on small screens and stay vertical */
-    #progress-bar {
-        height: 70vh;
-        width: 36px;
+    /* Slightly narrower progress bar on smaller screens */
+    :root {
+        --progress-width: 44px;
     }
+
+    #progress-bar {
+        height: 60vh;
+    }
+}
+
+/* Phone-specific: make progress bar half as wide on small phones */
+@media (max-width: 420px) {
+    :root { --progress-width: 24px; }
+    /* ensure min width allows the halved size */
+    #progress-bar { min-width: 24px; }
+
+    /* Scale down bucket and drops so gameplay fits comfortably on phones */
+    #slider { width: 48px; }
+    .water-drop { width: 40px; height: 40px; }
+    /* Slight transition on bucket and drops for smooth scaling */
+    #slider, .water-drop { transition: width 200ms ease, height 200ms ease, transform 160ms ease; }
 }
