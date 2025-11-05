@@ -69,16 +69,14 @@ function createDrop() {
   // Create a new div element that will be our water drop
   const drop = document.createElement("div");
   drop.className = "water-drop";
-
-  // Make drops different sizes for visual variety
-  // Use a fixed size so all drops are the same
-  const fixedSize = 60; // px
-  drop.style.width = drop.style.height = `${fixedSize}px`;
+  // Measure the drop size from CSS so JS positions them correctly
+  const dropSize = getDropSize();
+  drop.style.width = drop.style.height = `${dropSize}px`;
 
   // Position the drop randomly across the game width
-  // Subtract 60 pixels to keep drops fully inside the container
+  // Subtract dropSize pixels to keep drops fully inside the container
   const gameWidth = document.getElementById("game-container").offsetWidth;
-  const xPosition = Math.random() * (gameWidth - 60);
+  const xPosition = Math.random() * Math.max(0, (gameWidth - dropSize));
   drop.style.left = xPosition + "px";
 
   // Make drops fall for the duration set by difficulty
@@ -111,14 +109,47 @@ function createDrop() {
   });
 }
 
+// Helper to measure drop size from CSS. Caches value until cleared by resize.
+let _cachedDropSize = null;
+function getDropSize() {
+  if (_cachedDropSize) return _cachedDropSize;
+  // Create a temporary hidden drop to measure the CSS-applied size
+  const temp = document.createElement('div');
+  temp.className = 'water-drop';
+  temp.style.position = 'absolute';
+  temp.style.left = '-9999px';
+  temp.style.top = '-9999px';
+  document.body.appendChild(temp);
+  // Use offsetWidth which reflects CSS size (including box-sizing)
+  const measured = Math.max(1, temp.offsetWidth || 60);
+  temp.remove();
+  _cachedDropSize = measured;
+  return _cachedDropSize;
+}
+
 // Slider setup
 const slider = document.getElementById('slider');
 const gameContainer = document.getElementById('game-container');
 let sliderWidth = (slider && slider.offsetWidth) ? slider.offsetWidth : 80;
 
-window.addEventListener('resize', () => {
+// Debounced resize handler: recalc sizes used by JS when the layout changes.
+function recalcSizes() {
   sliderWidth = (slider && slider.offsetWidth) ? slider.offsetWidth : sliderWidth;
+  // clear cached drop size so measurement reflects current CSS
+  _cachedDropSize = null;
+}
+
+let _resizeTimer = null;
+window.addEventListener('resize', () => {
+  if (_resizeTimer) clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    recalcSizes();
+    _resizeTimer = null;
+  }, 120);
 });
+
+// Run once on load to populate initial measurements
+recalcSizes();
 
 function updateSliderPosition(clientX) {
   const containerRect = gameContainer.getBoundingClientRect();
